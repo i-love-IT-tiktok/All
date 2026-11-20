@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vẻ Đẹp Của Vũ Trụ — Cosmic Documentary</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow-x: hidden;
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    color: #e8f4ff;
+    scroll-behavior: auto;
+  }
+  body { overflow-y: scroll; }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #050510; }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00e5ff, #a855f7);
+    border-radius: 3px;
+  }
+
+  #webgl-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 0;
+    display: block;
+  }
+
+  #star-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: -1;
+    display: block;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.7) 100%);
+  }
+
+  /* ============ HEADER UI ============ */
+  .ui-header {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 18px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+  }
+  .ui-header > * { pointer-events: auto; }
+
+  .brand {
+    font-size: 12px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #7ee7ff;
+    opacity: 0.7;
+    text-shadow: 0 0 12px #00e5ff;
+    font-weight: 600;
+  }
+
+  .controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid rgba(126, 231, 255, 0.35);
+    background: rgba(10, 20, 40, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #7ee7ff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    font-size: 16px;
+  }
+  .btn:hover {
+    border-color: #00e5ff;
+    box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+    background: rgba(0, 229, 255, 0.15);
+    transform: scale(1.08);
+  }
+  .btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+  /* ============ PROGRESS BAR ============ */
+  .progress-container {
+    position: fixed;
+    top: 78px; left: 32px; right: 32px;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .progress-track {
+    flex: 1;
+    height: 2px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .progress-fill {
+    position: absolute;
+    top: 0; left: 0;
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #00e5ff, #a855f7);
+    box-shadow: 0 0 12px #00e5ff;
+    border-radius: 2px;
+    transition: width 0.15s linear;
+  }
+  .progress-label {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #7ee7ff;
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    min-width: 60px;
+    text-align: right;
+  }
+
+  /* ============ SCROLL SECTIONS ============ */
+  .scene {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  .scene-content {
+    max-width: 900px;
+    padding: 0 24px;
+    text-align: center;
+    position: relative;
+    z-index: 10;
+  }
+
+  .scene-title {
+    font-size: clamp(2.2rem, 7vw, 5.5rem);
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    line-height: 1.05;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #00e5ff 0%, #7ee7ff 40%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 24px rgba(0, 229, 255, 0.6))
+            drop-shadow(0 0 48px rgba(168, 85, 247, 0.4));
+    opacity: 0;
+    transform: translateY(30px);
+  }
+
+  .scene-subtitle {
+    font-size: clamp(0.85rem, 1.6vw, 1.15rem);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #7ee7ff;
+    opacity: 0;
+    font-weight: 400;
+    margin-bottom: 18px;
+  }
+
+  .scene-desc {
+    font-size: clamp(0.9rem, 1.5vw, 1.1rem);
+    color: rgba(232, 244, 255, 0.6);
+    letter-spacing: 0.05em;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.8;
+    opacity: 0;
+  }
+
+  .char {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+
+  /* Intro scene */
+  #scene-intro {
+    height: 100vh;
+    flex-direction: column;
+  }
+  #scene-intro .scene-title {
+    font-size: clamp(2.6rem, 9vw, 7rem);
+    letter-spacing: 0.2em;
+  }
+
+  /* End scene */
+  #scene-end .scene-title {
+    font-size: clamp(3rem, 12vw, 10rem);
+    letter-spacing: 0.3em;
+    background: linear-gradient(135deg, #ffffff 0%, #7ee7ff 50%, #a855f7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* ============ SCENE NUMBER BADGE ============ */
+  .scene-number {
+    position: absolute;
+    top: 50%;
+    left: 32px;
+    transform: translateY(-50%);
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: #7ee7ff;
+    opacity: 0.4;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============ LOADING ============ */
+  #loader {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 1s ease;
+  }
+  #loader.hidden { opacity: 0; pointer-events: none; }
+  .loader-ring {
+    width: 60px; height: 60px;
+    border: 2px solid rgba(0, 229, 255, 0.2);
+    border-top-color: #00e5ff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.4);
+  }
+  .loader-text {
+    margin-top: 24px;
+    font-size: 11px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #7ee7ff;
+    opacity: 0.7;
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes pulse { 0%,100%{opacity:0.3} 50%{opacity:0.9} }
+
+  /* ============ AUTO MODE ============ */
+  .btn.active {
+    background: rgba(0, 229, 255, 0.25);
+    border-color: #00e5ff;
+    box-shadow: 0 0 24px rgba(0, 229, 255, 0.6);
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 768px) {
+    .ui-header { padding: 12px 16px; }
+    .progress-container { top: 64px; left: 16px; right: 16px; }
+    .brand { font-size: 9px; letter-spacing: 3px; }
+    .btn { width: 38px; height: 38px; }
+    .btn svg { width: 15px; height: 15px; }
+    .scene-number { left: 12px; font-size: 9px; letter-spacing: 2px; }
+    .scene-desc { font-size: 0.8rem; padding: 0 16px; }
+  }
+
+  /* ============ GLITCH TITLE ============ */
+  .glitch {
+    position: relative;
+    display: inline-block;
+  }
+  .glitch::before,
+  .glitch::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    opacity: 0;
+  }
+  .glitch.glitching::before {
+    background: linear-gradient(135deg, #ff0055, #00e5ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glitchA 0.3s steps(2) infinite;
+    opacity: 0.8;
+  }
+  .glitch.glitching::after {
+    background: linear-gradient(135deg, #00e5ff, #a855f7);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: glitchB 0.3s steps(2) infinite;
+    opacity: 0.8;
+  }
+  @keyframes glitchA {
+    0% { transform: translate(0); }
+    25% { transform: translate(-3px, 2px); }
+    50% { transform: translate(3px, -1px); }
+    75% { transform: translate(-2px, -2px); }
+    100% { transform: translate(0); }
+  }
+  @keyframes glitchB {
+    0% { transform: translate(0); }
+    25% { transform: translate(2px, -2px); }
+    50% { transform: translate(-3px, 1px); }
+    75% { transform: translate(2px, 2px); }
+    100% { transform: translate(0); }
+  }
+
+  /* Fade-out effect for end scene */
+  .fade-out-black {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 200;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 2s ease;
+  }
+  .fade-out-black.active { opacity: 1; }
+
+  /* Hint scroll */
+  .scroll-hint {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: #7ee7ff;
+    opacity: 0.6;
+    animation: floatDown 2.5s ease-in-out infinite;
+  }
+  .scroll-hint .line {
+    width: 1px; height: 40px;
+    background: linear-gradient(180deg, #7ee7ff, transparent);
+  }
+  @keyframes floatDown {
+    0%,100% { transform: translate(-50%, 0); opacity: 0.6; }
+    50% { transform: translate(-50%, 8px); opacity: 1; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Star background layer -->
+<canvas id="star-canvas"></canvas>
+
+<!-- Main 3D WebGL canvas -->
+<canvas id="webgl-canvas"></canvas>
+
+<!-- Vignette -->
+<div class="vignette"></div>
+
+<!-- Fade to black overlay -->
+<div class="fade-out-black" id="fadeOutBlack"></div>
+
+<!-- ============ HEADER UI ============ -->
+<header class="ui-header">
+  <div class="brand">COSMIC DOCUMENTARY</div>
+  <div class="controls">
+    <button class="btn" id="autoBtn" title="Tự động phát">
+      <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+    </button>
+    <button class="btn" id="soundBtn" title="Bật/Tắt âm thanh">
+      <svg viewBox="0 0 24 24" id="soundIcon"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>
+    </button>
+    <button class="btn" id="replayBtn" title="Phát lại từ đầu">
+      <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg>
+    </button>
+  </div>
+</header>
+
+<!-- ============ PROGRESS ============ -->
+<div class="progress-container">
+  <div class="progress-track">
+    <div class="progress-fill" id="progressFill"></div>
+  </div>
+  <div class="progress-label" id="progressLabel">01 / 12</div>
+</div>
+
+<!-- ============ SCENES ============ -->
+<main>
+
+  <!-- INTRO -->
+  <section class="scene" id="scene-intro" data-scene="0">
+    <div class="scene-content">
+      <div class="scene-subtitle" id="introSub">— Một hành trình khoa học điện ảnh —</div>
+      <h1 class="scene-title glitch" id="introTitle" data-text="VẺ ĐẸP CỦA VŨ TRỤ">VẺ ĐẸP CỦA VŨ TRỤ</h1>
+    </div>
+    <div class="scroll-hint">
+      <span>CUỘN XUỐNG</span>
+      <div class="line"></div>
+    </div>
+  </section>
+
+  <!-- SCENE 1: WAVES -->
+  <section class="scene" data-scene="1">
+    <div class="scene-number">CẢNH 01 — SÓNG</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Năng lượng lan tỏa</div>
+      <h2 class="scene-title">SÓNG</h2>
+      <p class="scene-desc">Từ một điểm sáng vô cực, năng lượng lan ra theo những vòng đồng tâm — như nhịp đập của chính không-thời gian.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 2: ATOM -->
+  <section class="scene" data-scene="2">
+    <div class="scene-number">CẢNH 02 — NGUYÊN TỬ</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Cấu trúc vi mô</div>
+      <h2 class="scene-title">NGUYÊN TỬ</h2>
+      <p class="scene-desc">Electron quay quanh hạt nhân với vận tốc ánh sáng — vũ trụ thu nhỏ trong từng nguyên tử.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 3: REFRACTION -->
+  <section class="scene" data-scene="3">
+    <div class="scene-number">CẢNH 03 — KHÚC XẠ</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Ánh sáng phân tách</div>
+      <h2 class="scene-title">KHÚC XẠ</h2>
+      <p class="scene-desc">Ánh sáng trắng đi qua lăng pha lê và bung ra thành dải màu của vũ trụ.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 4: ENERGY -->
+  <section class="scene" data-scene="4">
+    <div class="scene-number">CẢNH 04 — NĂNG LƯỢNG</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Nguồn sáng nguyên thủy</div>
+      <h2 class="scene-title">NĂNG LƯỢNG</h2>
+      <p class="scene-desc">Một cột sáng tím xuyên qua không gian, mang theo sức mạnh của vụ nổ đầu tiên.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 5: LIGHTNING -->
+  <section class="scene" data-scene="5">
+    <div class="scene-number">CẢNH 05 — SẤM SÉT</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Điện trường vũ trụ</div>
+      <h2 class="scene-title">SẤM SÉT</h2>
+      <p class="scene-desc">Những tia chớp tím xé toạc bầu trời — plasma nóng hàng triệu độ C.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 6: MAGNETIC FIELD -->
+  <section class="scene" data-scene="6">
+    <div class="scene-number">CẢNH 06 — TỪ TRƯỜNG</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Lực vô hình</div>
+      <h2 class="scene-title">TỪ TRƯỜNG</h2>
+      <p class="scene-desc">Những đường sức từ bao quanh hành tinh — tấm khiên bảo vệ sự sống.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 7: GRAVITY -->
+  <section class="scene" data-scene="7">
+    <div class="scene-number">CẢNH 07 — HẤP DẪN</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Lực hấp dẫn</div>
+      <h2 class="scene-title">HẤP DẪN</h2>
+      <p class="scene-desc">Trái Đất xanh phát sáng — bẻ cong không-thời gian xung quanh nó.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 8: SUN -->
+  <section class="scene" data-scene="8">
+    <div class="scene-number">CẢNH 08 — MẶT TRỜI</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Ngôi sao mẹ</div>
+      <h2 class="scene-title">MẶT TRỜI</h2>
+      <p class="scene-desc">Quả cầu plasma khổng lồ — nguồn sống của toàn hệ hành tinh.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 9: GALAXY -->
+  <section class="scene" data-scene="9">
+    <div class="scene-number">CẢNH 09 — THIÊN HÀ</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Hàng triệu vì sao</div>
+      <h2 class="scene-title">THIÊN HÀ</h2>
+      <p class="scene-desc">Xoắn ốc huyền ảo — mỗi hạt sáng là một mặt trời xa xôi.</p>
+    </div>
+  </section>
+
+  <!-- SCENE 10: BLACK HOLE -->
+  <section class="scene" data-scene="10">
+    <div class="scene-number">CẢNH 10 — HỐ ĐEN</div>
+    <div class="scene-content">
+      <div class="scene-subtitle">Chân trời sự kiện</div>
+      <h2 class="scene-title">HỐ ĐEN</h2>
+      <p class="scene-desc">Nơi ánh sáng không thể thoát — bí ẩn tối thượng của vũ trụ.</p>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section class="scene" id="scene-end" data-scene="11">
+    <div class="scene-content">
+      <div class="scene-subtitle">— Hết —</div>
+      <h2 class="scene-title">VŨ TRỤ</h2>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============ LOADER ============ -->
+<div id="loader">
+  <div class="loader-ring"></div>
+  <div class="loader-text">ĐANG KHỞI TẠO VŨ TRỤ</div>
+</div>
+
+<!-- ============ LIBRARIES ============ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+<script>
+/* ================================================================
+   COSMIC DOCUMENTARY — VẺ ĐẸP CỦA VŨ TRỤ
+   Senior Front-end + Motion Design
+   ================================================================ */
+
+'use strict';
+
+gsap.registerPlugin(ScrollTrigger);
+
+/* ---------- Global State ---------- */
+const STATE = {
+  isMobile: window.innerWidth < 768,
+  isLowEnd: false, // set after measuring
+  autoPlaying: false,
+  autoIndex: 0,
+  soundOn: false,
+  currentScene: 0,
+  totalScenes: 12
+};
+
+// Performance heuristic: hardwareConcurrency + memory
+if (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) STATE.isLowEnd = true;
+if (STATE.isMobile) STATE.isLowEnd = true;
+
+/* ================================================================
+   1. STARFIELD CANVAS (2D) — background parallax stars
+   ================================================================ */
+(function initStarfield() {
+  const canvas = document.getElementById('star-canvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, stars = [], nebulaBlobs = [];
+
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+    createStars();
+  }
+
+  function createStars() {
+    stars = [];
+    const count = STATE.isLowEnd ? 250 : 700;
+    for (let i = 0; i < count; i++) {
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        z: Math.random() * 3 + 0.3,
+        r: Math.random() * 1.4 + 0.2,
+        twinkle: Math.random() * Math.PI * 2,
+        speed: Math.random() * 0.4 + 0.1,
+        hue: Math.random() > 0.7 ? 190 : (Math.random() > 0.5 ? 270 : 210)
+      });
+    }
+    nebulaBlobs = [];
+    const nb = STATE.isLowEnd ? 3 : 6;
+    for (let i = 0; i < nb; i++) {
+      nebulaBlobs.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        r: Math.random() * 300 + 200,
+        hue: Math.random() > 0.5 ? 200 : 280,
+        a: Math.random() * 0.06 + 0.02
+      });
+    }
+  }
+
+  let scrollFactor = 0;
+  window.addEventListener('scroll', () => {
+    scrollFactor = window.scrollY / (document.body.scrollHeight - window.innerHeight || 1);
+  }, { passive: true });
+
+  let t = 0;
+  function draw() {
+    t += 0.01;
+    ctx.clearRect(0, 0, w, h);
+
+    // Nebula glow
+    for (const b of nebulaBlobs) {
+      const ox = (scrollFactor * 120) % 200 - 100;
+      const grad = ctx.createRadialGradient(b.x + ox, b.y, 0, b.x + ox, b.y, b.r);
+      grad.addColorStop(0, `hsla(${b.hue}, 100%, 60%, ${b.a})`);
+      grad.addColorStop(1, `hsla(${b.hue}, 100%, 40%, 0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(b.x - b.r + ox, b.y - b.r, b.r * 2, b.r * 2);
+    }
+
+    // Stars
+    for (const s of stars) {
+      s.twinkle += s.speed * 0.02;
+      const tw = (Math.sin(s.twinkle) + 1) * 0.5;
+      const alpha = 0.3 + tw * 0.7;
+      const r = s.r * (0.7 + tw * 0.5);
+      ctx.beginPath();
+      ctx.arc(s.x, s.y - scrollFactor * 100 * s.z, r, 0, Math.PI * 2);
+      ctx.fillStyle = `hsla(${s.hue}, 100%, 85%, ${alpha})`;
+      ctx.shadowBlur = STATE.isLowEnd ? 0 : 8;
+      ctx.shadowColor = `hsla(${s.hue}, 100%, 70%, ${alpha})`;
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  draw();
+})();
+
+/* ================================================================
+   2. THREE.JS — Main 3D Scene Manager
+   ================================================================ */
+const THREE_SCENE = (function initThree() {
+  const canvas = document.getElementById('webgl-canvas');
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: !STATE.isLowEnd,
+    alpha: true,
+    powerPreference: 'high-performance'
+  });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, STATE.isLowEnd ? 1.2 : 2));
+  renderer.setClearColor(0x000000, 0);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x000510, 0.008);
+
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    2000
+  );
+  camera.position.set(0, 0, 20);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x2a3a5a, 0.8);
+  scene.add(ambient);
+  const key = new THREE.PointLight(0x00e5ff, 2, 200);
+  key.position.set(10, 10, 20);
+  scene.add(key);
+  const purple = new THREE.PointLight(0xa855f7, 1.5, 200);
+  purple.position.set(-15, -5, 10);
+  scene.add(purple);
+
+  // Current scene object holder
+  let currentSceneGroup = null;
+  let sceneType = 'idle';
+
+  /* -------- Utility: dispose group -------- */
+  function disposeGroup(group) {
+    if (!group) return;
+    group.traverse(obj => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        if (Array.isArray(obj.material)) obj.material.forEach(m => m.dispose());
+        else obj.material.dispose();
+      }
+    });
+    scene.remove(group);
+  }
+
+  /* ================================================================
+     SCENE BUILDERS
+     ================================================================ */
+
+  /* --- Shared geometries/materials pools for perf --- */
+
+  // SCENE 0: INTRO — slow drifting galaxy
+  function buildIntro() {
+    const g = new THREE.Group();
+    const particles = STATE.isLowEnd ? 1500 : 4000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(particles * 3);
+    const col = new Float32Array(particles * 3);
+    const c1 = new THREE.Color(0x00e5ff);
+    const c2 = new THREE.Color(0xa855f7);
+    const c3 = new THREE.Color(0xffffff);
+
+    for (let i = 0; i < particles; i++) {
+      const arms = 3;
+      const arm = i % arms;
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.pow(Math.random(), 0.6) * 60;
+      const spiral = angle + (radius * 0.08) + (arm * (Math.PI * 2 / arms));
+      const spread = (1 - radius / 60) * 4;
+      const x = Math.cos(spiral) * radius + (Math.random() - 0.5) * spread;
+      const z = Math.sin(spiral) * radius + (Math.random() - 0.5) * spread;
+      const y = (Math.random() - 0.5) * 3;
+      pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
+
+      const mix = Math.random();
+      const c = mix < 0.5 ? c1.clone().lerp(c2, Math.random()) : c3.clone().lerp(c1, Math.random());
+      col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.35,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+    const pts = new THREE.Points(geo, mat);
+    g.add(pts);
+    g.userData.update = (t) => { pts.rotation.y = t * 0.05; pts.rotation.x = 0.3 + Math.sin(t*0.1)*0.05; };
+    camera.position.set(0, 6, 30);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 1: WAVES — concentric expanding rings + central light
+  function buildWaves() {
+    const g = new THREE.Group();
+    const centerLight = new THREE.Mesh(
+      new THREE.SphereGeometry(0.8, 24, 24),
+      new THREE.MeshBasicMaterial({ color: 0x7ee7ff })
+    );
+    g.add(centerLight);
+    const ringGeo = new THREE.RingGeometry(0.9, 1, 96);
+    const rings = [];
+    const nRings = STATE.isLowEnd ? 5 : 9;
+    for (let i = 0; i < nRings; i++) {
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: new THREE.Color(0x00e5ff).lerp(new THREE.Color(0xa855f7), i / nRings),
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.userData.offset = i / nRings;
+      g.add(ring);
+      rings.push(ring);
+    }
+    // Add glowing point sprites
+    const glowGeo = new THREE.BufferGeometry();
+    const nGlow = 300;
+    const pos = new Float32Array(nGlow * 3);
+    for (let i = 0; i < nGlow; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = Math.random() * 30;
+      pos[i*3] = Math.cos(a) * r;
+      pos[i*3+1] = Math.sin(a) * r;
+      pos[i*3+2] = (Math.random() - 0.5) * 10;
+    }
+    glowGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const glowMat = new THREE.PointsMaterial({
+      color: 0x7ee7ff, size: 0.12, transparent: true, opacity: 0.6,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    g.add(new THREE.Points(glowGeo, glowMat));
+
+    g.userData.update = (t) => {
+      centerLight.scale.setScalar(1 + Math.sin(t * 2) * 0.3);
+      centerLight.material.color.setHSL(0.5 + Math.sin(t)*0.05, 1, 0.7);
+      rings.forEach((ring, i) => {
+        const phase = ((t * 0.5 + ring.userData.offset) % 1);
+        const scale = 0.5 + phase * 25;
+        ring.scale.setScalar(scale);
+        ring.material.opacity = Math.sin(phase * Math.PI) * 0.8;
+      });
+    };
+    camera.position.set(0, 0, 20);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 2: ATOM — nucleus + orbiting electrons
+  function buildAtom() {
+    const g = new THREE.Group();
+    const nucleus = new THREE.Mesh(
+      new THREE.SphereGeometry(1.2, 32, 32),
+      new THREE.MeshPhongMaterial({
+        color: 0xa855f7,
+        emissive: 0xa855f7,
+        emissiveIntensity: 1.5,
+        shininess: 80
+      })
+    );
+    g.add(nucleus);
+    // Glow shell
+    const glow = new THREE.Mesh(
+      new THREE.SphereGeometry(1.8, 24, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xa855f7, transparent: true, opacity: 0.2,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      })
+    );
+    g.add(glow);
+
+    const orbitals = [];
+    const nOrb = 3;
+    for (let i = 0; i < nOrb; i++) {
+      const orbitGroup = new THREE.Group();
+      const tilt = (i / nOrb) * Math.PI;
+      // Orbit ring (thin torus)
+      const ringGeo = new THREE.TorusGeometry(4 + i * 1.2, 0.03, 8, 96);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: i % 2 ? 0x00e5ff : 0x7ee7ff,
+        transparent: true, opacity: 0.5,
+        blending: THREE.AdditiveBlending
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      orbitGroup.add(ring);
+      // Electron
+      const electron = new THREE.Mesh(
+        new THREE.SphereGeometry(0.18, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      electron.userData.radius = 4 + i * 1.2;
+      orbitGroup.add(electron);
+      orbitGroup.rotation.x = tilt;
+      orbitGroup.rotation.z = i * 0.7;
+      orbitGroup.userData.speed = 1 + i * 0.4;
+      orbitGroup.userData.electron = electron;
+      g.add(orbitGroup);
+      orbitals.push(orbitGroup);
+    }
+
+    g.userData.update = (t) => {
+      nucleus.rotation.y = t * 0.4;
+      glow.scale.setScalar(1 + Math.sin(t * 3) * 0.1);
+      orbitals.forEach((o, i) => {
+        const e = o.userData.electron;
+        const a = t * o.userData.speed + i * 2;
+        e.position.set(Math.cos(a) * e.userData.radius, Math.sin(a) * e.userData.radius, 0);
+        o.rotation.z = t * 0.2 + i;
+        o.rotation.y = Math.sin(t * 0.3 + i) * 0.5;
+      });
+    };
+    camera.position.set(0, 2, 18);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 3: REFRACTION — prism splitting light
+  function buildRefraction() {
+    const g = new THREE.Group();
+    // Prism
+    const prismGeo = new THREE.CylinderGeometry(2, 2, 4, 3, 1);
+    const prismMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff,
+      metalness: 0.1,
+      roughness: 0.05,
+      transmission: 0.9,
+      thickness: 2,
+      transparent: true,
+      opacity: 0.6,
+      side: THREE.DoubleSide
+    });
+    const prism = new THREE.Mesh(prismGeo, prismMat);
+    prism.rotation.z = Math.PI / 6;
+    g.add(prism);
+    prism.position.z = -2;
+
+    // Incoming white beam
+    const beamGeo = new THREE.CylinderGeometry(0.06, 0.06, 14, 8);
+    const beamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9 });
+    const beam = new THREE.Mesh(beamGeo, beamMat);
+    beam.rotation.z = Math.PI / 2 - 0.4;
+    beam.position.set(-8, 2, -2);
+    g.add(beam);
+
+    // Outgoing rainbow beams
+    const rainbowColors = [0xff0055, 0xff8800, 0xffdd00, 0x00ff88, 0x00e5ff, 0x8800ff];
+    const outBeams = [];
+    rainbowColors.forEach((c, i) => {
+      const geo = new THREE.CylinderGeometry(0.04, 0.04, 12, 6);
+      const mat = new THREE.MeshBasicMaterial({ color: c, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
+      const m = new THREE.Mesh(geo, mat);
+      const angle = -0.5 + i * 0.16;
+      m.rotation.z = Math.PI / 2 + angle;
+      m.position.set(4 + Math.cos(angle) * 6, -2 + Math.sin(angle) * 6, -2);
+      g.add(m);
+      outBeams.push({ mesh: m, base: angle });
+    });
+
+    g.userData.update = (t) => {
+      prism.rotation.y = Math.sin(t * 0.3) * 0.2;
+      beamMat.opacity = 0.7 + Math.sin(t * 8) * 0.2;
+      outBeams.forEach((b, i) => {
+        b.mesh.material.opacity = 0.7 + Math.sin(t * 4 + i) * 0.25;
+      });
+    };
+    camera.position.set(0, 0, 22);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 4: ENERGY — vertical purple light pillar
+  function buildEnergy() {
+    const g = new THREE.Group();
+    // Pillar beam
+    const pillarGeo = new THREE.CylinderGeometry(0.4, 1.5, 30, 32, 1, true);
+    const pillarMat = new THREE.MeshBasicMaterial({
+      color: 0xa855f7,
+      transparent: true,
+      opacity: 0.5,
+      side: THREE.DoubleSide,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    g.add(pillar);
+
+    // Core beam
+    const coreGeo = new THREE.CylinderGeometry(0.1, 0.3, 30, 16);
+    const coreMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const core = new THREE.Mesh(coreGeo, coreMat);
+    g.add(core);
+
+    // Rising particles
+    const pGeo = new THREE.BufferGeometry();
+    const nP = STATE.isLowEnd ? 300 : 800;
+    const pPos = new Float32Array(nP * 3);
+    const pVel = [];
+    for (let i = 0; i < nP; i++) {
+      pPos[i*3] = (Math.random() - 0.5) * 3;
+      pPos[i*3+1] = (Math.random() - 0.5) * 30;
+      pPos[i*3+2] = (Math.random() - 0.5) * 3;
+      pVel.push(Math.random() * 0.05 + 0.02);
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xa855f7, size: 0.15, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const particles = new THREE.Points(pGeo, pMat);
+    g.add(particles);
+
+    g.userData.update = (t) => {
+      pillarMat.opacity = 0.4 + Math.sin(t * 2) * 0.2;
+      coreMat.opacity = 0.7 + Math.sin(t * 5) * 0.3;
+      pillar.scale.x = 1 + Math.sin(t * 3) * 0.1;
+      pillar.scale.z = 1 + Math.sin(t * 3) * 0.1;
+      const positions = pGeo.attributes.position.array;
+      for (let i = 0; i < nP; i++) {
+        positions[i*3+1] += pVel[i];
+        if (positions[i*3+1] > 15) positions[i*3+1] = -15;
+      }
+      pGeo.attributes.position.needsUpdate = true;
+      particles.rotation.y = t * 0.1;
+    };
+    camera.position.set(0, 0, 25);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 5: LIGHTNING — purple lightning bolts
+  function buildLightning() {
+    const g = new THREE.Group();
+    const bolts = [];
+    function createBolt() {
+      const points = [];
+      const segments = 14;
+      let x = (Math.random() - 0.5) * 4;
+      let y = 12;
+      let z = (Math.random() - 0.5) * 2;
+      for (let i = 0; i <= segments; i++) {
+        points.push(new THREE.Vector3(x, y, z));
+        x += (Math.random() - 0.5) * 1.5;
+        y -= 24 / segments;
+        z += (Math.random() - 0.5) * 0.8;
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geo = new THREE.TubeGeometry(curve, 32, 0.08, 6, false);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xa855f7,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      g.add(mesh);
+      return mesh;
+    }
+    const nBolts = STATE.isLowEnd ? 4 : 7;
+    for (let i = 0; i < nBolts; i++) {
+      bolts.push({ mesh: createBolt(), phase: Math.random() * 10 });
+    }
+    // Ambient glow
+    const glowGeo = new THREE.SphereGeometry(30, 16, 16);
+    const glowMat = new THREE.MeshBasicMaterial({
+      color: 0xa855f7, transparent: true, opacity: 0.05,
+      side: THREE.BackSide, depthWrite: false
+    });
+    g.add(new THREE.Mesh(glowGeo, glowMat));
+
+    g.userData.update = (t) => {
+      bolts.forEach((b, i) => {
+        const flash = Math.max(0, Math.sin((t + b.phase) * 3) - 0.7) / 0.3;
+        b.mesh.material.opacity = flash;
+        b.mesh.visible = flash > 0.01;
+      });
+    };
+    camera.position.set(0, 0, 28);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 6: MAGNETIC FIELD — planet + field lines
+  function buildMagnetic() {
+    const g = new THREE.Group();
+    const planet = new THREE.Mesh(
+      new THREE.SphereGeometry(3, 48, 48),
+      new THREE.MeshPhongMaterial({
+        color: 0x1a3a6a,
+        emissive: 0x0a1a3a,
+        emissiveIntensity: 0.8,
+        shininess: 60
+      })
+    );
+    g.add(planet);
+    // Planet glow
+    const glowMat = new THREE.ShaderMaterial({
+      uniforms: { c: { value: 0.3 }, p: { value: 2.5 }, glowColor: { value: new THREE.Color(0x00e5ff) } },
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float c;
+        uniform float p;
+        varying vec3 vNormal;
+        void main() {
+          float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p);
+          gl_FragColor = vec4(glowColor, intensity * 0.8);
+        }`,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    });
+    const glow = new THREE.Mesh(new THREE.SphereGeometry(3.8, 32, 32), glowMat);
+    g.add(glow);
+
+    // Magnetic field lines (dipole)
+    const fieldLines = [];
+    const nLines = STATE.isLowEnd ? 6 : 12;
+    for (let i = 0; i < nLines; i++) {
+      const points = [];
+      const phi = (i / nLines) * Math.PI * 2;
+      const tilt = 0.3;
+      for (let j = 0; j <= 40; j++) {
+        const theta = (j / 40) * Math.PI;
+        const r = 3.2 + Math.sin(theta) * 4;
+        const x = r * Math.sin(theta) * Math.cos(phi);
+        const y = r * Math.cos(theta) + Math.sin(phi) * tilt;
+        const z = r * Math.sin(theta) * Math.sin(phi);
+        points.push(new THREE.Vector3(x, y, z));
+      }
+      const curve = new THREE.CatmullRomCurve3(points);
+      const geo = new THREE.TubeGeometry(curve, 60, 0.04, 6, false);
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0x00e5ff,
+        transparent: true,
+        opacity: 0.6,
+        blending: THREE.AdditiveBlending
+      });
+      const mesh = new THREE.Mesh(geo, mat);
+      g.add(mesh);
+      fieldLines.push({ mesh, phase: i * 0.5 });
+    }
+
+    g.userData.update = (t) => {
+      planet.rotation.y = t * 0.2;
+      glow.scale.setScalar(1 + Math.sin(t * 2) * 0.05);
+      fieldLines.forEach((f, i) => {
+        f.mesh.material.opacity = 0.4 + Math.sin(t * 2 + f.phase) * 0.3;
+        f.mesh.rotation.y = t * 0.1;
+      });
+    };
+    camera.position.set(0, 3, 18);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 7: GRAVITY — Earth with atmosphere
+  function buildGravity() {
+    const g = new THREE.Group();
+    // Earth base
+    const earth = new THREE.Mesh(
+      new THREE.SphereGeometry(3, 64, 64),
+      new THREE.MeshPhongMaterial({
+        color: 0x1e5a9a,
+        emissive: 0x0a2a4a,
+        emissiveIntensity: 0.6,
+        shininess: 40
+      })
+    );
+    g.add(earth);
+
+    // Simulated continents — procedural noise texture via vertex colors is complex,
+    // use a second sphere with wireframe-like patches for texture
+    const patchesGeo = new THREE.SphereGeometry(3.02, 32, 32);
+    const patchesMat = new THREE.MeshBasicMaterial({
+      color: 0x2a8a5a,
+      transparent: true,
+      opacity: 0.4,
+      wireframe: true
+    });
+    const patches = new THREE.Mesh(patchesGeo, patchesMat);
+    g.add(patches);
+
+    // Atmosphere glow
+    const atmosMat = new THREE.ShaderMaterial({
+      uniforms: {
+        glowColor: { value: new THREE.Color(0x00e5ff) },
+        c: { value: 0.4 }, p: { value: 3.0 }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float c; uniform float p;
+        varying vec3 vNormal;
+        void main() {
+          float intensity = pow(c - dot(vNormal, vec3(0.0, 0.0, 1.0)), p);
+          gl_FragColor = vec4(glowColor, intensity);
+        }`,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    });
+    const atmos = new THREE.Mesh(new THREE.SphereGeometry(4.2, 48, 48), atmosMat);
+    g.add(atmos);
+
+    // Orbiting stars/moons
+    const moons = [];
+    for (let i = 0; i < 2; i++) {
+      const m = new THREE.Mesh(
+        new THREE.SphereGeometry(0.25, 16, 16),
+        new THREE.MeshBasicMaterial({ color: 0xffffff })
+      );
+      m.userData.radius = 6 + i * 2;
+      m.userData.speed = 0.5 + i * 0.3;
+      g.add(m);
+      moons.push(m);
+    }
+
+    g.userData.update = (t) => {
+      earth.rotation.y = t * 0.15;
+      patches.rotation.y = t * 0.15;
+      atmos.scale.setScalar(1 + Math.sin(t * 1.5) * 0.03);
+      moons.forEach((m, i) => {
+        const a = t * m.userData.speed;
+        m.position.set(Math.cos(a) * m.userData.radius, Math.sin(a * 0.3) * 1.5, Math.sin(a) * m.userData.radius);
+      });
+    };
+    camera.position.set(0, 0, 14);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 8: SUN — star with plasma + orbit rings
+  function buildSun() {
+    const g = new THREE.Group();
+    const sunGeo = new THREE.SphereGeometry(5, 64, 64);
+    const sunMat = new THREE.MeshPhongMaterial({
+      color: 0xffaa33,
+      emissive: 0xff6600,
+      emissiveIntensity: 1.8,
+      shininess: 30
+    });
+    const sun = new THREE.Mesh(sunGeo, sunMat);
+    g.add(sun);
+
+    // Corona glow
+    const coronaMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        glowColor: { value: new THREE.Color(0xff8800) }
+      },
+      vertexShader: `
+        varying vec3 vNormal;
+        varying vec3 vPos;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vPos = position;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform vec3 glowColor;
+        uniform float time;
+        varying vec3 vNormal;
+        varying vec3 vPos;
+        void main() {
+          float intensity = pow(0.6 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 3.0);
+          float flicker = 0.8 + sin(time * 5.0 + vPos.y * 2.0) * 0.2;
+          gl_FragColor = vec4(glowColor, intensity * flicker);
+        }`,
+      side: THREE.BackSide,
+      blending: THREE.AdditiveBlending,
+      transparent: true
+    });
+    const corona = new THREE.Mesh(new THREE.SphereGeometry(6.5, 48, 48), coronaMat);
+    g.add(corona);
+
+    // Plasma particles
+    const pGeo = new THREE.BufferGeometry();
+    const nP = STATE.isLowEnd ? 400 : 1200;
+    const pPos = new Float32Array(nP * 3);
+    const pInit = [];
+    for (let i = 0; i < nP; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const b = Math.acos(2 * Math.random() - 1);
+      const r = 5.2 + Math.random() * 1.5;
+      const x = r * Math.sin(b) * Math.cos(a);
+      const y = r * Math.cos(b);
+      const z = r * Math.sin(b) * Math.sin(a);
+      pPos[i*3] = x; pPos[i*3+1] = y; pPos[i*3+2] = z;
+      pInit.push({ x, y, z, speed: Math.random() * 0.3 + 0.1, phase: Math.random() * Math.PI * 2 });
+    }
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const pMat = new THREE.PointsMaterial({
+      color: 0xffdd66, size: 0.2, transparent: true, opacity: 0.8,
+      blending: THREE.AdditiveBlending, depthWrite: false
+    });
+    const plasma = new THREE.Points(pGeo, pMat);
+    g.add(plasma);
+
+    // Orbit rings
+    for (let i = 0; i < 2; i++) {
+      const ringGeo = new THREE.TorusGeometry(9 + i * 2, 0.05, 8, 128);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xffaa33, transparent: true, opacity: 0.4,
+        blending: THREE.AdditiveBlending
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2 + i * 0.2;
+      g.add(ring);
+    }
+
+    g.userData.update = (t) => {
+      sun.rotation.y = t * 0.2;
+      coronaMat.uniforms.time.value = t;
+      corona.scale.setScalar(1 + Math.sin(t * 2) * 0.04);
+      const pos = pGeo.attributes.position.array;
+      for (let i = 0; i < nP; i++) {
+        const init = pInit[i];
+        const scale = 1 + Math.sin(t * init.speed + init.phase) * 0.05;
+        pos[i*3] = init.x * scale;
+        pos[i*3+1] = init.y * scale;
+        pos[i*3+2] = init.z * scale;
+      }
+      pGeo.attributes.position.needsUpdate = true;
+    };
+    camera.position.set(0, 3, 20);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 9: GALAXY — spiral galaxy
+  function buildGalaxy() {
+    const g = new THREE.Group();
+    const particles = STATE.isLowEnd ? 3000 : 9000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(particles * 3);
+    const col = new Float32Array(particles * 3);
+    const c1 = new THREE.Color(0x00e5ff);
+    const c2 = new THREE.Color(0xa855f7);
+    const c3 = new THREE.Color(0xffaa66);
+
+    for (let i = 0; i < particles; i++) {
+      const arms = 2;
+      const arm = i % arms;
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.pow(Math.random(), 0.7) * 80;
+      const spiral = angle + (radius * 0.06) + (arm * Math.PI);
+      const spread = (1 - radius / 80) * 8;
+      const x = Math.cos(spiral) * radius + (Math.random() - 0.5) * spread;
+      const z = Math.sin(spiral) * radius + (Math.random() - 0.5) * spread;
+      const y = (Math.random() - 0.5) * 4 * (1 - radius / 100);
+      pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
+
+      const d = Math.min(1, radius / 40);
+      let c;
+      if (d < 0.3) c = c3.clone().lerp(c1, d / 0.3);
+      else c = c1.clone().lerp(c2, (d - 0.3) / 0.7);
+      col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.4,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.9,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      sizeAttenuation: true
+    });
+    const pts = new THREE.Points(geo, mat);
+    g.add(pts);
+    // Core
+    const core = new THREE.Mesh(
+      new THREE.SphereGeometry(2, 32, 32),
+      new THREE.MeshBasicMaterial({ color: 0xffdd88 })
+    );
+    g.add(core);
+    const coreGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(6, 24, 24),
+      new THREE.MeshBasicMaterial({
+        color: 0xffaa66, transparent: true, opacity: 0.15,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      })
+    );
+    g.add(coreGlow);
+
+    g.userData.update = (t) => {
+      pts.rotation.y = t * 0.08;
+      pts.rotation.x = 0.4;
+      core.scale.setScalar(1 + Math.sin(t * 2) * 0.1);
+    };
+    camera.position.set(0, 25, 40);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 10: BLACK HOLE
+  function buildBlackHole() {
+    const g = new THREE.Group();
+    // Event horizon
+    const hole = new THREE.Mesh(
+      new THREE.SphereGeometry(3, 48, 48),
+      new THREE.MeshBasicMaterial({ color: 0x000000 })
+    );
+    g.add(hole);
+
+    // Accretion disk (glowing ring)
+    const diskGeo = new THREE.RingGeometry(3.4, 9, 96, 1);
+    const diskMat = new THREE.ShaderMaterial({
+      uniforms: { time: { value: 0 } },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: `
+        uniform float time;
+        varying vec2 vUv;
+        void main() {
+          float r = length(vUv - 0.5) * 2.0;
+          float a = atan(vUv.y - 0.5, vUv.x - 0.5);
+          float swirl = sin(a * 6.0 + time * 2.0 + r * 10.0) * 0.5 + 0.5;
+          float edge = smoothstep(0.0, 0.2, r) * (1.0 - smoothstep(0.85, 1.0, r));
+          vec3 col = mix(vec3(1.0, 0.6, 0.2), vec3(0.6, 0.3, 1.0), r);
+          gl_FragColor = vec4(col * swirl, edge * 0.9);
+        }`,
+      side: THREE.DoubleSide,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const disk = new THREE.Mesh(diskGeo, diskMat);
+    disk.rotation.x = Math.PI / 2.3;
+    g.add(disk);
+
+    // Photon ring
+    const ringGeo = new THREE.TorusGeometry(3.3, 0.08, 8, 128);
+    const ringMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending
+    });
+    const photonRing = new THREE.Mesh(ringGeo, ringMat);
+    photonRing.rotation.x = Math.PI / 2.3;
+    g.add(photonRing);
+
+    // Particle jet
+    const jetParticles = [];
+    for (let i = 0; i < 2; i++) {
+      const pGeo = new THREE.BufferGeometry();
+      const nP = STATE.isLowEnd ? 100 : 300;
+      const pos = new Float32Array(nP * 3);
+      for (let j = 0; j < nP; j++) {
+        pos[j*3] = (Math.random() - 0.5) * 0.8;
+        pos[j*3+1] = (i === 0 ? 1 : -1) * (Math.random() * 15 + 3);
+        pos[j*3+2] = (Math.random() - 0.5) * 0.8;
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      const pMat = new THREE.PointsMaterial({
+        color: i === 0 ? 0x00e5ff : 0xa855f7,
+        size: 0.2, transparent: true, opacity: 0.8,
+        blending: THREE.AdditiveBlending, depthWrite: false
+      });
+      g.add(new THREE.Points(pGeo, pMat));
+      jetParticles.push({ geo: pGeo, dir: i === 0 ? 1 : -1 });
+    }
+
+    g.userData.update = (t) => {
+      diskMat.uniforms.time.value = t;
+      disk.rotation.z = t * 0.3;
+      photonRing.rotation.z = t * 0.4;
+      hole.scale.setScalar(1 + Math.sin(t * 1.5) * 0.02);
+      jetParticles.forEach(jp => {
+        const pos = jp.geo.attributes.position.array;
+        for (let i = 0; i < pos.length; i += 3) {
+          pos[i+1] += jp.dir * 0.05;
+          if (jp.dir > 0 && pos[i+1] > 20) pos[i+1] = 3;
+          if (jp.dir < 0 && pos[i+1] < -20) pos[i+1] = -3;
+        }
+        jp.geo.attributes.position.needsUpdate = true;
+      });
+    };
+    camera.position.set(0, 4, 22);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  // SCENE 11: END — vast galaxy, camera pulls back
+  function buildEnd() {
+    const g = new THREE.Group();
+    const particles = STATE.isLowEnd ? 3000 : 7000;
+    const geo = new THREE.BufferGeometry();
+    const pos = new Float32Array(particles * 3);
+    const col = new Float32Array(particles * 3);
+    const c1 = new THREE.Color(0x00e5ff);
+    const c2 = new THREE.Color(0xa855f7);
+
+    for (let i = 0; i < particles; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = Math.pow(Math.random(), 0.6) * 100;
+      const spiral = angle + radius * 0.05;
+      const x = Math.cos(spiral) * radius + (Math.random() - 0.5) * 8;
+      const z = Math.sin(spiral) * radius + (Math.random() - 0.5) * 8;
+      const y = (Math.random() - 0.5) * 6;
+      pos[i*3] = x; pos[i*3+1] = y; pos[i*3+2] = z;
+      const d = Math.min(1, radius / 50);
+      const c = c1.clone().lerp(c2, d);
+      col[i*3] = c.r; col[i*3+1] = c.g; col[i*3+2] = c.b;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    const mat = new THREE.PointsMaterial({
+      size: 0.5, vertexColors: true, transparent: true, opacity: 0.9,
+      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true
+    });
+    const pts = new THREE.Points(geo, mat);
+    g.add(pts);
+
+    g.userData.update = (t) => {
+      pts.rotation.y = t * 0.03;
+      pts.rotation.x = 0.3;
+    };
+    camera.position.set(0, 30, 90);
+    camera.lookAt(0, 0, 0);
+    return g;
+  }
+
+  /* ================================================================
+     BUILD DISPATCH
+     ================================================================ */
+  const builders = {
+    0: buildIntro, 1: buildWaves, 2: buildAtom, 3: buildRefraction,
+    4: buildEnergy, 5: buildLightning, 6: buildMagnetic, 7: buildGravity,
+    8: buildSun, 9: buildGalaxy, 10: buildBlackHole, 11: buildEnd
+  };
+
+  function setScene(index) {
+    if (sceneType === index) return;
+    sceneType = index;
+    if (currentSceneGroup) {
+      // fade out
+      const old = currentSceneGroup;
+      gsap.to(old.scale, { x: 0.8, y: 0.8, z: 0.8, duration: 0.4, onComplete: () => disposeGroup(old) });
+      currentSceneGroup = null;
+    }
+    const newGroup = builders[index]();
+    newGroup.scale.setScalar(0.8);
+    scene.add(newGroup);
+    gsap.to(newGroup.scale, { x: 1, y: 1, z: 1, duration: 0.8, ease: 'power2.out' });
+    currentSceneGroup = newGroup;
+  }
+
+  /* ================================================================
+     RENDER LOOP
+     ================================================================ */
+  const clock = new THREE.Clock();
+  let camBase = { x: 0, y: 0, z: 20 };
+  let parallaxX = 0, parallaxY = 0;
+  window.addEventListener('mousemove', (e) => {
+    parallaxX = (e.clientX / window.innerWidth - 0.5) * 2;
+    parallaxY = (e.clientY / window.innerHeight - 0.5) * 2;
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+    if (currentSceneGroup && currentSceneGroup.userData.update) {
+      currentSceneGroup.userData.update(t);
+    }
+    // Camera subtle parallax
+    if (!STATE.isLowEnd) {
+      camera.position.x += (parallaxX * 1.5 - camera.position.x * 0) * 0.02;
+      camera.position.y += (-parallaxY * 1.0 - camera.position.y * 0) * 0.02;
+    }
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
+
+  return { setScene, scene, camera, renderer };
+})();
+
+/* ================================================================
+   3. SCROLL-TRIGGERED SCENE CONTROL
+   ================================================================ */
+const sceneSections = document.querySelectorAll('.scene');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const fadeOutBlack = document.getElementById('fadeOutBlack');
+
+// Per-scene text reveal animations
+sceneSections.forEach((section, idx) => {
+  const title = section.querySelector('.scene-title');
+  const subtitle = section.querySelector('.scene-subtitle');
+  const desc = section.querySelector('.scene-desc');
+
+  // Split title into chars
+  if (title && !title.dataset.split) {
+    const text = title.textContent;
+    title.dataset.text = text;
+    title.textContent = '';
+    text.split('').forEach(ch => {
+      const span = document.createElement('span');
+      span.className = 'char';
+      span.textContent = ch === ' ' ? '\u00A0' : ch;
+      title.appendChild(span);
+    });
+    title.dataset.split = 'true';
+  }
+
+  const chars = title ? title.querySelectorAll('.char') : [];
+
+  // ScrollTrigger for each scene
+  ScrollTrigger.create({
+    trigger: section,
+    start: 'top 60%',
+    end: 'bottom 40%',
+    onEnter: () => activateScene(idx),
+    onEnterBack: () => activateScene(idx)
+  });
+});
+
+function activateScene(idx) {
+  STATE.currentScene = idx;
+  THREE_SCENE.setScene(idx);
+
+  const section = sceneSections[idx];
+  const title = section.querySelector('.scene-title');
+  const subtitle = section.querySelector('.scene-subtitle');
+  const desc = section.querySelector('.scene-desc');
+  const chars = title ? title.querySelectorAll('.char') : [];
+
+  // Kill previous tweens on these
+  if (subtitle) gsap.killTweensOf(subtitle);
+  if (desc) gsap.killTweensOf(desc);
+  if (chars.length) gsap.killTweensOf(chars);
+
+  // Subtitle
+  if (subtitle) {
+    gsap.fromTo(subtitle,
+      { opacity: 0, y: 20, letterSpacing: '0.6em' },
+      { opacity: 1, y: 0, letterSpacing: '0.3em', duration: 1.2, ease: 'power2.out' }
+    );
+  }
+
+  // Title chars
+  if (chars.length) {
+    gsap.fromTo(chars,
+      { opacity: 0, y: 40, scale: 0.7, rotateX: -45 },
+      {
+        opacity: 1, y: 0, scale: 1, rotateX: 0,
+        duration: 1.0, ease: 'back.out(1.5)',
+        stagger: 0.04, delay: 0.2
+      }
+    );
+    // Glitch pulse on title after reveal
+    if (idx === 0 || idx === 11) {
+      const titleEl = title;
+      if (titleEl.classList.contains('glitch')) {
+        titleEl.classList.remove('glitching');
+        setTimeout(() => {
+          titleEl.classList.add('glitching');
+          setTimeout(() => titleEl.classList.remove('glitching'), 400);
+        }, 800);
+      }
+    }
+  }
+
+  // Desc
+  if (desc) {
+    gsap.fromTo(desc,
+      { opacity: 0, y: 30, filter: 'blur(10px)' },
+      { opacity: 1, y: 0, filter: 'blur(0px)', duration: 1.4, ease: 'power2.out', delay: 0.6 }
+    );
+  }
+
+  // Progress
+  updateProgress(idx);
+
+  // Fade to black on last scene
+  if (idx === 11) {
+    setTimeout(() => {
+      fadeOutBlack.classList.add('active');
+      gsap.to(sceneSections[11], { opacity: 0, duration: 2, delay: 1, ease: 'power2.inOut' });
+    }, 2500);
+  } else {
+    fadeOutBlack.classList.remove('active');
+    gsap.set(sceneSections[11], { opacity: 1 });
+  }
+}
+
+function updateProgress(idx) {
+  const pct = ((idx + 1) / STATE.totalScenes) * 100;
+  progressFill.style.width = pct + '%';
+  progressLabel.textContent = String(idx + 1).padStart(2, '0') + ' / ' + String(STATE.totalScenes).padStart(2, '0');
+}
+
+/* ================================================================
+   4. AUTO PLAY MODE
+   ================================================================ */
+let autoTimer = null;
+const autoBtn = document.getElementById('autoBtn');
+
+function startAuto() {
+  if (STATE.autoPlaying) return;
+  STATE.autoPlaying = true;
+  autoBtn.classList.add('active');
+  STATE.autoIndex = STATE.currentScene;
+  const sceneHeight = window.innerHeight;
+  const targetY = (STATE.autoIndex + 1) * sceneHeight;
+  window.scrollTo({ top: (STATE.autoIndex) * sceneHeight, behavior: 'instant' });
+
+  const advance = () => {
+    if (!STATE.autoPlaying) return;
+    if (STATE.autoIndex >= STATE.totalScenes - 1) {
+      stopAuto();
+      return;
+    }
+    STATE.autoIndex++;
+    gsap.to(window, {
+      scrollTo: { y: STATE.autoIndex * sceneHeight, autoKill: false },
+      duration: 1.8,
+      ease: 'power2.inOut'
+    });
+    autoTimer = setTimeout(advance, 4800);
+  };
+  autoTimer = setTimeout(advance, 3000);
+}
+
+function stopAuto() {
+  STATE.autoPlaying = false;
+  autoBtn.classList.remove('active');
+  if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
+}
+
+autoBtn.addEventListener('click', () => {
+  if (STATE.autoPlaying) stopAuto();
+  else startAuto();
+});
+
+// Stop auto on manual scroll
+let scrollTimeout;
+window.addEventListener('wheel', () => {
+  if (STATE.autoPlaying) stopAuto();
+}, { passive: true });
+window.addEventListener('touchmove', () => {
+  if (STATE.autoPlaying) stopAuto();
+}, { passive: true });
+
+/* ================================================================
+   5. SOUND (Web Audio API procedural)
+   ================================================================ */
+const soundBtn = document.getElementById('soundBtn');
+const soundIcon = document.getElementById('soundIcon');
+let audioCtx = null, audioNodes = null;
+
+const ICON_ON = '<path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/>';
+const ICON_OFF = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
+
+soundBtn.addEventListener('click', () => {
+  STATE.soundOn = !STATE.soundOn;
+  if (STATE.soundOn) {
+    startAmbient();
+    soundIcon.innerHTML = ICON_ON;
+    soundBtn.classList.add('active');
+  } else {
+    stopAmbient();
+    soundIcon.innerHTML = ICON_OFF;
+    soundBtn.classList.remove('active');
+  }
+});
+
+function startAmbient() {
+  if (audioCtx) { audioCtx.resume(); return; }
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const master = audioCtx.createGain();
+  master.gain.value = 0;
+  master.connect(audioCtx.destination);
+
+  // Drone oscillator (low)
+  const drone = audioCtx.createOscillator();
+  drone.type = 'sine';
+  drone.frequency.value = 55;
+  const droneGain = audioCtx.createGain();
+  droneGain.gain.value = 0.15;
+  drone.connect(droneGain).connect(master);
+  drone.start();
+
+  // Fifth
+  const drone2 = audioCtx.createOscillator();
+  drone2.type = 'sine';
+  drone2.frequency.value = 82.5;
+  const drone2Gain = audioCtx.createGain();
+  drone2Gain.gain.value = 0.08;
+  drone2.connect(drone2Gain).connect(master);
+  drone2.start();
+
+  // Shimmer (high)
+  const shimmer = audioCtx.createOscillator();
+  shimmer.type = 'triangle';
+  shimmer.frequency.value = 440;
+  const shimmerGain = audioCtx.createGain();
+  shimmerGain.gain.value = 0.01;
+  shimmer.connect(shimmerGain).connect(master);
+  shimmer.start();
+
+  // LFO modulation
+  const lfo = audioCtx.createOscillator();
+  lfo.frequency.value = 0.1;
+  const lfoGain = audioCtx.createGain();
+  lfoGain.gain.value = 20;
+  lfo.connect(lfoGain).connect(shimmer.frequency);
+  lfo.start();
+
+  master.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 2);
+  audioNodes = { master, drone, drone2, shimmer, lfo };
+}
+
+function stopAmbient() {
+  if (!audioNodes) return;
+  const { master } = audioNodes;
+  master.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1);
+  setTimeout(() => {
+    if (audioCtx) audioCtx.suspend();
+  }, 1200);
+}
+
+/* ================================================================
+   6. REPLAY BUTTON
+   ================================================================ */
+document.getElementById('replayBtn').addEventListener('click', () => {
+  stopAuto();
+  fadeOutBlack.classList.remove('active');
+  gsap.set(sceneSections[11], { opacity: 1 });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => {
+    THREE_SCENE.setScene(0);
+    updateProgress(0);
+  }, 300);
+});
+
+/* ================================================================
+   7. HIDE LOADER + INIT
+   ================================================================ */
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+    // Trigger intro animation
+    setTimeout(() => {
+      activateScene(0);
+    }, 400);
+  }, 1200);
+});
+
+// Also update progress on scroll (in case of intermediate states)
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight || 1);
+  if (!STATE.autoPlaying) {
+    // Progress based on active scene (updates via ScrollTrigger)
+  }
+}, { passive: true });
+
+// Prevent horizontal scroll
+document.documentElement.style.overflowX = 'hidden';
+
+console.log('%c🌌 VẺ ĐẸP CỦA VŨ TRỤ — Cosmic Documentary initialized', 'color:#00e5ff; font-size:14px; font-weight:bold;');
+</script>
+</body>
+</html>
